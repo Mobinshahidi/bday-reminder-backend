@@ -1,10 +1,10 @@
 import express from "express";
 import cors from "cors";
-import { Pool } from "pg";
+import pkg from "pg";
 import "dotenv/config";
 import persianDate from "persian-date";
 import cron from "node-cron";
-
+const { Pool } = pkg;
 const app = express();
 
 // Middleware
