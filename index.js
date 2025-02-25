@@ -8,7 +8,18 @@ const { Pool } = pkg;
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "https://mobinshahidi.ir",
+      "https://www.mobinshahidi.ir",
+      "http://localhost:5173",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // PostgreSQL Database Connection
@@ -17,7 +28,7 @@ const pool = new Pool({
   host: "localhost",
   database: process.env.DB_NAME,
   password: process.env.DB_PASS,
-  port: 5432, 
+  port: 5432,
 });
 
 // Check database connection
