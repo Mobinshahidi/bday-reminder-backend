@@ -13,10 +13,10 @@ app.use(express.json());
 
 // PostgreSQL Database Connection
 const pool = new Pool({
-  user: "bdayapp",
+  user: process.env.DB_USER,
   host: "localhost", // PostgreSQL is on the same VPS
-  database: "bdayreminder",
-  password: "2213", // The password you set for the user
+  database: process.env.DB_NAME,
+  password: process.env.DB_USER, // The password you set for the user
   port: 5432, // Default PostgreSQL port
 });
 
@@ -128,6 +128,6 @@ app.put("/api/birthdays/:id", async (req, res) => {
 });
 
 // Start the server
-app.listen(5000, () => {
-  console.log("Server running on port 5000");
+app.listen(process.env.PORT || 5000, () => {
+  console.log(`Server running on port ${process.env.PORT || 5000}`);
 });
