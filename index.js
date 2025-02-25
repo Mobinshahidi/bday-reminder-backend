@@ -14,10 +14,10 @@ app.use(express.json());
 // PostgreSQL Database Connection
 const pool = new Pool({
   user: process.env.DB_USER,
-  host: "localhost", // PostgreSQL is on the same VPS
+  host: "localhost",
   database: process.env.DB_NAME,
-  password: process.env.DB_USER, // The password you set for the user
-  port: 5432, // Default PostgreSQL port
+  password: process.env.DB_USER, 
+  port: 5432, 
 });
 
 // Check database connection
