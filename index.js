@@ -1,5 +1,3 @@
-import https from "https";
-import fs from "fs";
 import express from "express";
 import cors from "cors";
 import pkg from "pg";
@@ -8,13 +6,6 @@ import persianDate from "persian-date";
 import cron from "node-cron";
 const { Pool } = pkg;
 const app = express();
-
-// SSL certificate files
-const privateKey = fs.readFileSync("/root/etc/ssl/private-key.pem", "utf8");
-const certificate = fs.readFileSync("/root/etc/ssl/certificate.pem", "utf8");
-const caBundle = fs.readFileSync("/root/etc/ssl/ca-bundle.pem", "utf8");
-
-const credentials = { key: privateKey, cert: certificate, ca: caBundle };
 
 // Middleware
 app.use(
@@ -144,6 +135,6 @@ app.put("/api/birthdays/:id", async (req, res) => {
 });
 
 // Start the server
-https.createServer(credentials, app).listen(process.env.PORT || 5000, () => {
+app.listen(process.env.PORT || 5000, () => {
   console.log(`Server running on port ${process.env.PORT || 5000}`);
 });
