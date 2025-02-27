@@ -4,6 +4,8 @@ import pkg from "pg";
 import "dotenv/config";
 import persianDate from "persian-date";
 import cron from "node-cron";
+import { encryptData, decryptData } from "./crypto.js";
+
 const { Pool } = pkg;
 const app = express();
 
@@ -48,42 +50,14 @@ cron.schedule("0 8 * * *", async () => {
     );
 
     todaysBirthdays.rows.forEach((birthday) => {
-      console.log(`Today is ${birthday.name}'s birthday!`);
-    });
-
-    // Find tomorrow's birthdays
-    const tomorrow = new persianDate().add("days", 1);
-    const tomorrowMonth = tomorrow.month();
-    const tomorrowDay = tomorrow.date();
-
-    const tomorrowBirthdays = await pool.query(
-      "SELECT * FROM birthdays WHERE month = $1 AND day = $2",
-      [tomorrowMonth, tomorrowDay]
-    );
-
-    tomorrowBirthdays.rows.forEach((birthday) => {
-      console.log(`Tomorrow is ${birthday.name}'s birthday!`);
-    });
-
-    // Find next week's birthdays
-    const nextWeek = new persianDate().add("days", 7);
-    const nextWeekMonth = nextWeek.month();
-    const nextWeekDay = nextWeek.date();
-
-    const nextWeekBirthdays = await pool.query(
-      "SELECT * FROM birthdays WHERE month = $1 AND day = $2",
-      [nextWeekMonth, nextWeekDay]
-    );
-
-    nextWeekBirthdays.rows.forEach((birthday) => {
-      console.log(`Next week is ${birthday.name}'s birthday!`);
+      console.log(`Today is ${decryptData(birthday.name)}'s birthday!`);
     });
   } catch (error) {
     console.error("Error checking birthdays:", error);
   }
 });
 
-// Get birthdays by fingerprint
+// ✅ **Get birthdays by fingerprint (Decrypt Names)**
 app.get("/api/birthdays/:fingerprint", async (req, res) => {
   try {
     const { fingerprint } = req.params;
@@ -91,27 +65,37 @@ app.get("/api/birthdays/:fingerprint", async (req, res) => {
       "SELECT * FROM birthdays WHERE fingerprint = $1",
       [fingerprint]
     );
-    res.json(result.rows);
+
+    // Decrypt each birthday name before sending response
+    const decryptedBirthdays = result.rows.map((birthday) => ({
+      ...birthday,
+      name: decryptData(birthday.name), // Decrypt name
+    }));
+
+    res.json(decryptedBirthdays);
   } catch (error) {
     res.status(500).json({ error: "Error fetching birthdays" });
   }
 });
 
-// Add new birthday
+// ✅ **Add new birthday (Encrypt Before Storing)**
 app.post("/api/birthdays", async (req, res) => {
   try {
     const { name, month, day, fingerprint } = req.body;
+    const encryptedName = encryptData(name); // Encrypt name before storing
+
     await pool.query(
       "INSERT INTO birthdays (name, month, day, fingerprint) VALUES ($1, $2, $3, $4)",
-      [name, month, day, fingerprint]
+      [encryptedName, month, day, fingerprint]
     );
+
     res.status(201).json({ message: "Birthday added" });
   } catch (error) {
     res.status(500).json({ error: "Error adding birthday" });
   }
 });
 
-// Delete birthday
+// ✅ **Delete birthday**
 app.delete("/api/birthdays/:id", async (req, res) => {
   try {
     await pool.query("DELETE FROM birthdays WHERE id = $1", [req.params.id]);
@@ -121,51 +105,73 @@ app.delete("/api/birthdays/:id", async (req, res) => {
   }
 });
 
-// Update birthday
+// ✅ **Update birthday (Encrypt Before Storing)**
 app.put("/api/birthdays/:id", async (req, res) => {
   try {
     const { name, month, day, fingerprint } = req.body;
+    const encryptedName = encryptData(name); // Encrypt before updating
+
     await pool.query(
       "UPDATE birthdays SET name = $1, month = $2, day = $3, fingerprint = $4 WHERE id = $5",
-      [name, month, day, fingerprint, req.params.id]
+      [encryptedName, month, day, fingerprint, req.params.id]
     );
+
     res.json({ message: "Birthday updated successfully" });
   } catch (error) {
     res.status(500).json({ error: "Error updating birthday" });
   }
 });
 
-// Import birthdays into PostgreSQL
+// ✅ **Import birthdays (Encrypt Names Before Storing)**
 app.post("/api/birthdays/import", async (req, res) => {
   try {
     const { birthdays, fingerprint } = req.body;
 
-    // Validate input
     if (!Array.isArray(birthdays) || !fingerprint) {
       return res.status(400).json({ error: "Invalid import data format" });
     }
 
-    // Convert array of birthdays into PostgreSQL format
+    // Encrypt each name before inserting
     const values = birthdays
       .map(
         (birthday) =>
-          `('${birthday.name}', ${birthday.month}, ${birthday.day}, '${fingerprint}')`
+          `('${encryptData(birthday.name)}', ${birthday.month}, ${
+            birthday.day
+          }, '${fingerprint}')`
       )
       .join(",");
 
-    // Insert into PostgreSQL
     const query = `INSERT INTO birthdays (name, month, day, fingerprint) VALUES ${values}`;
-
     await pool.query(query);
 
     res.status(201).json({ message: "Birthdays imported successfully" });
   } catch (error) {
-    console.error("Import error:", error);
     res.status(500).json({ error: "Error importing birthdays" });
   }
 });
 
-// Start the server
+// ✅ **Export birthdays (Decrypt Names Before Sending)**
+app.get("/api/birthdays/export/:fingerprint", async (req, res) => {
+  try {
+    const { fingerprint } = req.params;
+    const result = await pool.query(
+      "SELECT * FROM birthdays WHERE fingerprint = $1",
+      [fingerprint]
+    );
+
+    // Decrypt each birthday before exporting
+    const decryptedData = result.rows.map((birthday) => ({
+      ...birthday,
+      name: decryptData(birthday.name),
+    }));
+
+    res.json(decryptedData);
+  } catch (error) {
+    res.status(500).json({ error: "Error exporting birthdays" });
+  }
+});
+
+// ✅ **Start the server**
 app.listen(process.env.PORT || 5000, () => {
   console.log(`Server running on port ${process.env.PORT || 5000}`);
 });
