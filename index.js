@@ -177,6 +177,6 @@ app.get("/api/birthdays/export/:fingerprint", async (req, res) => {
 });
 
 // ✅ **Start the server**
-app.listen(process.env.PORT || 5001, () => {
-  console.log(`Server running on port ${process.env.PORT || 5001}`);
+app.listen(process.env.PORT || 5000, () => {
+  console.log(`Server running on port ${process.env.PORT || 5000}`);
 });
