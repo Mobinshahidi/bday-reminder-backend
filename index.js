@@ -135,6 +135,33 @@ app.put("/api/birthdays/:id", async (req, res) => {
   }
 });
 
+// Import birthdays
+app.post("/api/birthdays/import", async (req, res) => {
+  try {
+    const collection = mongoose.connection.collection("birthdays");
+    const { birthdays, fingerprint } = req.body;
+
+    // Validate input
+    if (!Array.isArray(birthdays) || !fingerprint) {
+      return res.status(400).json({ error: "Invalid import data format" });
+    }
+
+    // Add fingerprint to each birthday
+    const birthdaysWithFingerprint = birthdays.map((birthday) => ({
+      ...birthday,
+      fingerprint: fingerprint,
+    }));
+
+    // Insert the birthdays
+    await collection.insertMany(birthdaysWithFingerprint);
+
+    res.status(201).json({ message: "Birthdays imported successfully" });
+  } catch (error) {
+    console.error("Import error:", error);
+    res.status(500).json({ error: "Error importing birthdays" });
+  }
+});
+
 // Start the server
 app.listen(process.env.PORT || 5000, () => {
   console.log(`Server running on port ${process.env.PORT || 5000}`);
