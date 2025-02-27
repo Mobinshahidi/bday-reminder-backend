@@ -135,10 +135,9 @@ app.put("/api/birthdays/:id", async (req, res) => {
   }
 });
 
-// Import birthdays
+// Import birthdays into PostgreSQL
 app.post("/api/birthdays/import", async (req, res) => {
   try {
-    const collection = mongoose.connection.collection("birthdays");
     const { birthdays, fingerprint } = req.body;
 
     // Validate input
@@ -146,14 +145,18 @@ app.post("/api/birthdays/import", async (req, res) => {
       return res.status(400).json({ error: "Invalid import data format" });
     }
 
-    // Add fingerprint to each birthday
-    const birthdaysWithFingerprint = birthdays.map((birthday) => ({
-      ...birthday,
-      fingerprint: fingerprint,
-    }));
+    // Convert array of birthdays into PostgreSQL format
+    const values = birthdays
+      .map(
+        (birthday) =>
+          `('${birthday.name}', ${birthday.month}, ${birthday.day}, '${fingerprint}')`
+      )
+      .join(",");
 
-    // Insert the birthdays
-    await collection.insertMany(birthdaysWithFingerprint);
+    // Insert into PostgreSQL
+    const query = `INSERT INTO birthdays (name, month, day, fingerprint) VALUES ${values}`;
+
+    await pool.query(query);
 
     res.status(201).json({ message: "Birthdays imported successfully" });
   } catch (error) {
