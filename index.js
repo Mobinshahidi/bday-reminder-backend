@@ -17,6 +17,7 @@ app.use(
       "https://api.mobinshahidi.ir",
       "http://bday-reminder.mobinshahidi.ir",
       "http://api.mobinshahidi.ir",
+      "http://localhost:4173",
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -62,7 +63,7 @@ cron.schedule("0 8 * * *", async () => {
   }
 });
 
-// ✅ **Get birthdays by fingerprint (Decrypt Names)**
+// Get birthdays by fingerprint (Decrypt Names)
 app.get("/api/birthdays/:fingerprint", async (req, res) => {
   try {
     const { fingerprint } = req.params;
@@ -83,7 +84,7 @@ app.get("/api/birthdays/:fingerprint", async (req, res) => {
   }
 });
 
-// ✅ **Add new birthday (Encrypt Before Storing)**
+// Add new birthday (Encrypt Before Storing)
 app.post("/api/birthdays", async (req, res) => {
   try {
     const { name, month, day, fingerprint } = req.body;
@@ -100,17 +101,33 @@ app.post("/api/birthdays", async (req, res) => {
   }
 });
 
-// ✅ **Delete birthday**
+// Delete birthday
 app.delete("/api/birthdays/:id", async (req, res) => {
   try {
-    await pool.query("DELETE FROM birthdays WHERE id = $1", [req.params.id]);
+    const id = parseInt(req.params.id); // Ensure ID is a number
+    console.log("Deleting ID:", id);
+
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid ID" });
+    }
+
+    const result = await pool.query(
+      "DELETE FROM birthdays WHERE id = $1 RETURNING *",
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Birthday not found" });
+    }
+
     res.json({ message: "Birthday deleted successfully" });
   } catch (error) {
+    console.error("Error deleting birthday:", error);
     res.status(500).json({ error: "Error deleting birthday" });
   }
 });
 
-// ✅ **Update birthday (Encrypt Before Storing)**
+// Update birthday (Encrypt Before Storing)
 app.put("/api/birthdays/:id", async (req, res) => {
   try {
     const { name, month, day, fingerprint } = req.body;
@@ -127,7 +144,7 @@ app.put("/api/birthdays/:id", async (req, res) => {
   }
 });
 
-// ✅ **Import birthdays (Encrypt Names Before Storing)**
+// Import birthdays (Encrypt Names Before Storing)
 app.post("/api/birthdays/import", async (req, res) => {
   try {
     const { birthdays, fingerprint } = req.body;
@@ -155,7 +172,7 @@ app.post("/api/birthdays/import", async (req, res) => {
   }
 });
 
-// ✅ **Export birthdays (Decrypt Names Before Sending)**
+// Export birthdays (Decrypt Names Before Sending)
 app.get("/api/birthdays/export/:fingerprint", async (req, res) => {
   try {
     const { fingerprint } = req.params;
@@ -176,7 +193,7 @@ app.get("/api/birthdays/export/:fingerprint", async (req, res) => {
   }
 });
 
-// ✅ **Start the server**
+// Start the server
 app.listen(process.env.PORT || 5000, () => {
   console.log(`Server running on port ${process.env.PORT || 5000}`);
 });
